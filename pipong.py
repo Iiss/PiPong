@@ -1,6 +1,17 @@
 import pygame,sys
 from pygame.locals import *
 
+class Paddle(pygame.sprite.Sprite):
+
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+
+        #draw paddle rectangle
+        self.image = pygame.Surface([32, 32])
+        self.image.fill((255,255,255))
+
+        self.rect=self.image.get_rect()
+
 pygame.init()
 
 SCREEN_W = 640
@@ -11,6 +22,15 @@ PADDLE_H = 72
 
 SCREEN = pygame.display.set_mode((SCREEN_W,SCREEN_H))
 
+paddle=Paddle()#,FOREGROUND,PADDLE_W,PADDLE_H)
+
+
+
+
+testGroup = pygame.sprite.Group()
+testGroup.add(paddle)
+testGroup.x=300
+
 #main loop
 while True:
     for event in pygame.event.get():
@@ -18,16 +38,10 @@ while True:
             pygame.quit()
             sys.exit()
 
+    testGroup.draw(SCREEN)
     pygame.display.update()
 
-class Paddle(pygame.sprite.Sprite,color,width,height):
 
-    def __init__(self):
-        pygame.sprite.Sprite.__init__(self)
-
-#draw paddle rectangle
-        self.image = pygame.Surface([width, height])
-        self.image.fill(color)
 
         
     
