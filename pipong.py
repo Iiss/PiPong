@@ -11,9 +11,10 @@ FOREGROUND = (255,255,255)
 MARGIN_V = 4
 LINE_W = 8
 
-
-PADDLE_W = 24
-PADDLE_H = 72
+PADDLE_W = 12
+PADDLE_H = 56
+PADDLE_MARGIN_H = 24
+PADDLE_MARGIN_V = MARGIN_V+LINE_W
 
 PADDLE_1_UP_KEY = pygame.K_q
 PADDLE_1_DOWN_KEY =pygame.K_a
@@ -83,9 +84,23 @@ class GameState(State):
     def __init__(self):
         State.__init__(self)
 
-  
-    def on_render(self,surface):
-        #draw background
+        
+        self._displayList = pygame.sprite.Group()
+        
+        self._paddle_1 = Paddle(FOREGROUND,PADDLE_W,PADDLE_H)
+        self._paddle_1.rect.x = PADDLE_MARGIN_H;
+        self._paddle_1.rect.y = .5*(SCREEN_H- self._paddle_1.rect.h)
+
+        self._paddle_2 = Paddle(FOREGROUND,PADDLE_W,PADDLE_H)
+        self._paddle_2.rect.x = SCREEN_W - PADDLE_MARGIN_H - self._paddle_2.rect.w;
+        self._paddle_2.rect.y = self._paddle_1.rect.y 
+
+        self._displayList.add(self._paddle_1)
+        self._displayList.add(self._paddle_2)
+
+    #draw background
+    def draw_bg(self,surface):
+       
         pygame.draw.rect(surface,FOREGROUND,(0,MARGIN_V,SCREEN_W,LINE_W))
         pygame.draw.rect(surface,FOREGROUND,(0,SCREEN_H-MARGIN_V-LINE_W,SCREEN_W,LINE_W))
 
@@ -96,6 +111,13 @@ class GameState(State):
         while lasty < endy:
             pygame.draw.rect(surface,FOREGROUND,(.5*(SCREEN_W-LINE_W),lasty,LINE_W,LINE_W))
             lasty+=(LINE_W+gap)
+
+
+    def on_render(self,surface):
+        self.draw_bg(surface)
+        self._displayList.draw(surface)
+
+   
                              
     
 #
