@@ -7,11 +7,17 @@ from pygame.locals import *
 SCREEN_W = 640
 SCREEN_H = 480
 FOREGROUND = (255,255,255)
+
+MARGIN_V = 4
+LINE_W = 8
+
+
 PADDLE_W = 24
 PADDLE_H = 72
 
 PADDLE_1_UP_KEY = pygame.K_q
-PADDLE_1_DOWN_KEY =pygame.K_a 
+PADDLE_1_DOWN_KEY =pygame.K_a
+
 
 #
 # Paddle
@@ -71,64 +77,26 @@ class StateManager(object):
                 cls._currentState = value
 
 #
-# Test state 1
-#
-class TestState1(State):
-
-    def __init__(self):
-        State.__init__(self)
-
-    def on_render(self,surface):
-        surface.fill((255,0,0))
-
-
-#
-# Test state 2
-#
-class TestState2(State):
-
-    def __init__(self):
-        State.__init__(self)
-
-    def on_render(self,surface):
-        surface.fill((0,255,0))
-   
-#
-# Test state 3
-#
-class TestState3(State):
-
-    def __init__(self):
-        State.__init__(self)
-        
-    def on_render(self,surface):
-        surface.fill((0,0,255))
-
-STATES=[TestState1(),TestState2(),TestState3()]
-
-#
 # Game State
 #
 class GameState(State):
     def __init__(self):
-        pass
+        State.__init__(self)
 
-    def on_init(self):
-        pass
-
-    def on_event(self,event):
-        pass
-
-    def on_loop(self):
-        pass
-
+  
     def on_render(self,surface):
         #draw background
-        
-        pass
+        pygame.draw.rect(surface,FOREGROUND,(0,MARGIN_V,SCREEN_W,LINE_W))
+        pygame.draw.rect(surface,FOREGROUND,(0,SCREEN_H-MARGIN_V-LINE_W,SCREEN_W,LINE_W))
 
-    def on_cleanup(self):
-        pass
+        lasty = starty = MARGIN_V+LINE_W
+        endy = SCREEN_H-MARGIN_V-LINE_W
+        gap = 8
+
+        while lasty < endy:
+            pygame.draw.rect(surface,FOREGROUND,(.5*(SCREEN_W-LINE_W),lasty,LINE_W,LINE_W))
+            lasty+=(LINE_W+gap)
+                             
     
 #
 # Main Apllication Class
@@ -188,9 +156,8 @@ class App:
 if __name__ == "__main__":
 
     theApp = App()
-    theApp.on_execute()
-
     StateManager.currentState = GameState()
+    theApp.on_execute()
 
 
 
