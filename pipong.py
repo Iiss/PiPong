@@ -10,6 +10,9 @@ FOREGROUND = (255,255,255)
 PADDLE_W = 24
 PADDLE_H = 72
 
+PADDLE_1_UP_KEY = pygame.K_q
+PADDLE_1_DOWN_KEY =pygame.K_a 
+
 #
 # Paddle
 #
@@ -75,11 +78,9 @@ class TestState1(State):
     def __init__(self):
         State.__init__(self)
 
-    def on_loop(self):
-        print('TestState1 loop')
-
     def on_render(self,surface):
         surface.fill((255,0,0))
+
 
 #
 # Test state 2
@@ -89,12 +90,9 @@ class TestState2(State):
     def __init__(self):
         State.__init__(self)
 
-    def on_loop(self):
-        print('TestState2 loop')
-
     def on_render(self,surface):
         surface.fill((0,255,0))
-
+   
 #
 # Test state 3
 #
@@ -103,15 +101,35 @@ class TestState3(State):
     def __init__(self):
         State.__init__(self)
         
-    def on_loop(self):
-        print('TestState3 loop')
-        
     def on_render(self,surface):
         surface.fill((0,0,255))
 
-
 STATES=[TestState1(),TestState2(),TestState3()]
-                 
+
+#
+# Game State
+#
+class GameState(State):
+    def __init__(self):
+        pass
+
+    def on_init(self):
+        pass
+
+    def on_event(self,event):
+        pass
+
+    def on_loop(self):
+        pass
+
+    def on_render(self,surface):
+        #draw background
+        
+        pass
+
+    def on_cleanup(self):
+        pass
+    
 #
 # Main Apllication Class
 #
@@ -135,14 +153,6 @@ class App:
     def on_event(self,event):
         if event.type == QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             self._running = False
-
-        if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-            self._curStateIndex+=1
-
-            if self._curStateIndex >= len(STATES):
-                self._curStateIndex=0
-
-            StateManager.currentState=STATES[self._curStateIndex]
 
         if StateManager.currentState != None:
             StateManager.currentState.on_event(event)
@@ -178,8 +188,9 @@ class App:
 if __name__ == "__main__":
 
     theApp = App()
-   
     theApp.on_execute()
+
+    StateManager.currentState = GameState()
 
 
 
