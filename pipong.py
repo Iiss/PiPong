@@ -19,11 +19,10 @@ PADDLE_MARGIN_V = MARGIN_V+LINE_W
 PADDLE_1_UP_KEY = pygame.K_q
 PADDLE_1_DOWN_KEY =pygame.K_a
 
-
 #
-# Paddle
+# Rectangle Sprite
 #
-class Paddle(pygame.sprite.Sprite):
+class RectangleSprite(pygame.sprite.Sprite):
 
     def __init__(self,color,width,height):
         pygame.sprite.Sprite.__init__(self)
@@ -33,12 +32,48 @@ class Paddle(pygame.sprite.Sprite):
         self.image.fill(color)
         self.rect=self.image.get_rect()
 
+    def move(self,x,y):
+        self.rect.x = x
+        self.rect.y = y
+
+
+#
+# Paddle
+#
+class Paddle(RectangleSprite):
+
+    def __init__(self,color,width,height):
+        RectangleSprite.__init__(self,color,width,height)
+        self.speed=.1
+
+    def update(self):
+        direction = 0
+        keys_pressed = pygame.key.get_pressed()
+
+        if keys_pressed[PADDLE_1_UP_KEY]:
+           direction = -1
+
+        elif keys_pressed[PADDLE_1_DOWN_KEY]:
+           direction = 1
+
+        self.rect.centery=self.rect.centery+direction*self.speed
+
+        pygame.sprite.Sprite.update(self)
+
+#
+# Wall
+#
+class Wall(RectangleSprite):
+
+    def __init__(self,color,width,height):
+        RectangleSprite.__init__(self,color,width,height)
+
 #
 # State
 #
 class State:
     def __init__(self):
-        pass
+        self._display_list = None
 
     def on_init(self):
         pass
@@ -50,10 +85,18 @@ class State:
         pass
 
     def on_render(self,surface):
-        pass
+        if self._display_list != None:
+            self._display_list.update()
+            self._display_list.draw(surface)
 
     def on_cleanup(self):
         pass
+
+    def add(self,obj):
+        if self._display_list == None:
+            self._display_list = pygame.sprite.Group()
+
+        self._display_list.add(obj)
 
 #
 # State Manager
@@ -84,9 +127,6 @@ class GameState(State):
     def __init__(self):
         State.__init__(self)
 
-        
-        self._displayList = pygame.sprite.Group()
-        
         self._paddle_1 = Paddle(FOREGROUND,PADDLE_W,PADDLE_H)
         self._paddle_1.rect.x = PADDLE_MARGIN_H;
         self._paddle_1.rect.y = .5*(SCREEN_H- self._paddle_1.rect.h)
@@ -95,15 +135,20 @@ class GameState(State):
         self._paddle_2.rect.x = SCREEN_W - PADDLE_MARGIN_H - self._paddle_2.rect.w;
         self._paddle_2.rect.y = self._paddle_1.rect.y 
 
-        self._displayList.add(self._paddle_1)
-        self._displayList.add(self._paddle_2)
+        self.add(self._paddle_1)
+        self.add(self._paddle_2)
+
+        self._top_wall = Wall(FOREGROUND,SCREEN_W,LINE_W)
+        self._bottom_wall = Wall(FOREGROUND,SCREEN_W,LINE_W)
+
+        self._top_wall.move(0,MARGIN_V)
+        self._bottom_wall.move(0,SCREEN_H-MARGIN_V-LINE_W)
+
+        self.add(self._top_wall)
+        self.add(self._bottom_wall)
 
     #draw background
     def draw_bg(self,surface):
-       
-        pygame.draw.rect(surface,FOREGROUND,(0,MARGIN_V,SCREEN_W,LINE_W))
-        pygame.draw.rect(surface,FOREGROUND,(0,SCREEN_H-MARGIN_V-LINE_W,SCREEN_W,LINE_W))
-
         lasty = starty = MARGIN_V+LINE_W
         endy = SCREEN_H-MARGIN_V-LINE_W
         gap = 8
@@ -115,10 +160,8 @@ class GameState(State):
 
     def on_render(self,surface):
         self.draw_bg(surface)
-        self._displayList.draw(surface)
-
-   
-                             
+        State.on_render(self,surface)
+                  
     
 #
 # Main Apllication Class
@@ -171,7 +214,7 @@ class App:
             self.on_loop()
             self.on_render()
 
-            pygame.display.update()
+            pygame.display.flip()
 
         self.on_cleanup()
 
@@ -180,14 +223,6 @@ if __name__ == "__main__":
     theApp = App()
     StateManager.currentState = GameState()
     theApp.on_execute()
-
-
-
-#### temp ####
-##        paddle=Paddle(FOREGROUND,PADDLE_W,PADDLE_H)
-##        self._testGroup = pygame.sprite.Group()
-##        self._testGroup.add(paddle)
-#### temp end ####
         
     
 
