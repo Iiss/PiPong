@@ -6,6 +6,7 @@ from pygame.locals import *
 #
 SCREEN_W = 640
 SCREEN_H = 480
+FPS = 60
 FOREGROUND = (255,255,255)
 
 MARGIN_V = 4
@@ -17,7 +18,7 @@ PADDLE_MARGIN_H = 24
 PADDLE_MARGIN_V = MARGIN_V+LINE_W
 
 PADDLE_1_UP_KEY = pygame.K_q
-PADDLE_1_DOWN_KEY =pygame.K_a
+PADDLE_1_DOWN_KEY = pygame.K_a
 
 #
 # Rectangle Sprite
@@ -32,10 +33,19 @@ class RectangleSprite(pygame.sprite.Sprite):
         self.image.fill(color)
         self.rect=self.image.get_rect()
 
+        self.x = self.rect.centerx
+        self.y = self.rect.centery
+
     def move(self,x,y):
         self.rect.x = x
         self.rect.y = y
-
+#
+# Control Behavior
+#
+class PaddleControlBehavior:
+    def __init__(self):
+        self.up_key = None
+        self.down_key = None
 
 #
 # Paddle
@@ -44,21 +54,29 @@ class Paddle(RectangleSprite):
 
     def __init__(self,color,width,height):
         RectangleSprite.__init__(self,color,width,height)
-        self.speed=.1
+        self.speed=4
 
     def update(self):
+
         direction = 0
         keys_pressed = pygame.key.get_pressed()
 
         if keys_pressed[PADDLE_1_UP_KEY]:
-           direction = -1
+           direction -= 1
 
         elif keys_pressed[PADDLE_1_DOWN_KEY]:
-           direction = 1
+           direction += 1
 
-        self.rect.centery=self.rect.centery+direction*self.speed
+        newpos = self.rect.move((0, direction*self.speed))
+        self.rect = newpos
 
-        pygame.sprite.Sprite.update(self)
+        print(walls)
+
+
+
+        if walls != None and self.rect.collidelist(walls):
+            print('collide')
+
 
 #
 # Wall
@@ -86,8 +104,8 @@ class State:
 
     def on_render(self,surface):
         if self._display_list != None:
-            self._display_list.update()
             self._display_list.draw(surface)
+            self._display_list.update()
 
     def on_cleanup(self):
         pass
@@ -128,12 +146,10 @@ class GameState(State):
         State.__init__(self)
 
         self._paddle_1 = Paddle(FOREGROUND,PADDLE_W,PADDLE_H)
-        self._paddle_1.rect.x = PADDLE_MARGIN_H;
-        self._paddle_1.rect.y = .5*(SCREEN_H- self._paddle_1.rect.h)
+        self._paddle_1.move(PADDLE_MARGIN_H,.5*(SCREEN_H- self._paddle_1.rect.h))
 
         self._paddle_2 = Paddle(FOREGROUND,PADDLE_W,PADDLE_H)
-        self._paddle_2.rect.x = SCREEN_W - PADDLE_MARGIN_H - self._paddle_2.rect.w;
-        self._paddle_2.rect.y = self._paddle_1.rect.y 
+        self._paddle_2.move(SCREEN_W - PADDLE_MARGIN_H - self._paddle_2.rect.w,self._paddle_1.rect.y)
 
         self.add(self._paddle_1)
         self.add(self._paddle_2)
@@ -146,9 +162,13 @@ class GameState(State):
 
         self.add(self._top_wall)
         self.add(self._bottom_wall)
+        
+        self.bg_color=(0,0,0)
 
     #draw background
     def draw_bg(self,surface):
+        surface.fill(self.bg_color)
+        
         lasty = starty = MARGIN_V+LINE_W
         endy = SCREEN_H-MARGIN_V-LINE_W
         gap = 8
@@ -182,6 +202,7 @@ class App:
         pygame.display.set_caption("PiPong")
 
         self._running = True
+        self._clock = pygame.time.Clock()
 
     def on_event(self,event):
         if event.type == QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
@@ -215,6 +236,9 @@ class App:
             self.on_render()
 
             pygame.display.flip()
+
+            # Limit to 20 frames per second
+            self._clock.tick(FPS)
 
         self.on_cleanup()
 
