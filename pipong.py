@@ -33,9 +33,6 @@ class RectangleSprite(pygame.sprite.Sprite):
         self.image.fill(color)
         self.rect=self.image.get_rect()
 
-        self.x = self.rect.centerx
-        self.y = self.rect.centery
-
     def move(self,x,y):
         self.rect.x = x
         self.rect.y = y
@@ -54,7 +51,8 @@ class Paddle(RectangleSprite):
 
     def __init__(self,color,width,height):
         RectangleSprite.__init__(self,color,width,height)
-        self.speed=4
+        self.speed = 6
+        self.walls = None
 
     def update(self):
 
@@ -66,16 +64,33 @@ class Paddle(RectangleSprite):
 
         elif keys_pressed[PADDLE_1_DOWN_KEY]:
            direction += 1
+        
+        dy=direction*self.speed
+        
+        if self.walls != None:
+            collision_index = self.rect.collidelist(self.walls)
 
-        newpos = self.rect.move((0, direction*self.speed))
-        self.rect = newpos
+            if collision_index!=-1:
+                collision_rect=self.walls[collision_index]
 
-        print(walls)
+               
 
+                if direction == -1:
+                    dy = collision_rect.bottom-self.rect.top
+                    print(collision_rect,collision_rect.bottom,self.rect.top,dy)
 
+            
+        self.rect = self.rect.move(0,dy)
 
-        if walls != None and self.rect.collidelist(walls):
-            print('collide')
+        
+
+        
+                
+            
+
+      
+
+        
 
 
 #
@@ -145,14 +160,14 @@ class GameState(State):
     def __init__(self):
         State.__init__(self)
 
-        self._paddle_1 = Paddle(FOREGROUND,PADDLE_W,PADDLE_H)
+        self._paddle_1 = Paddle((255,0,0),PADDLE_W,PADDLE_H)
         self._paddle_1.move(PADDLE_MARGIN_H,.5*(SCREEN_H- self._paddle_1.rect.h))
 
         self._paddle_2 = Paddle(FOREGROUND,PADDLE_W,PADDLE_H)
         self._paddle_2.move(SCREEN_W - PADDLE_MARGIN_H - self._paddle_2.rect.w,self._paddle_1.rect.y)
 
         self.add(self._paddle_1)
-        self.add(self._paddle_2)
+      #  self.add(self._paddle_2)
 
         self._top_wall = Wall(FOREGROUND,SCREEN_W,LINE_W)
         self._bottom_wall = Wall(FOREGROUND,SCREEN_W,LINE_W)
@@ -162,6 +177,10 @@ class GameState(State):
 
         self.add(self._top_wall)
         self.add(self._bottom_wall)
+
+        walls=[self._top_wall.rect,self._bottom_wall.rect]
+
+        self._paddle_1.walls=walls
         
         self.bg_color=(0,0,0)
 
@@ -236,8 +255,6 @@ class App:
             self.on_render()
 
             pygame.display.flip()
-
-            # Limit to 20 frames per second
             self._clock.tick(FPS)
 
         self.on_cleanup()
