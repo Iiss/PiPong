@@ -20,6 +20,9 @@ PADDLE_MARGIN_V = MARGIN_V+LINE_W
 PADDLE_1_UP_KEY = pygame.K_q
 PADDLE_1_DOWN_KEY = pygame.K_a
 
+PADDLE_2_UP_KEY = pygame.K_p
+PADDLE_2_DOWN_KEY = pygame.K_l
+
 #
 # Rectangle Sprite
 #
@@ -49,10 +52,11 @@ class PaddleControlBehavior:
 #
 class Paddle(RectangleSprite):
 
-    def __init__(self,color,width,height):
+    def __init__(self,color,width,height,controls):
         RectangleSprite.__init__(self,color,width,height)
-        self.speed = 20
+        self.speed = 5
         self.walls = None
+        self.controls = controls
 
     def update(self):
 
@@ -60,10 +64,10 @@ class Paddle(RectangleSprite):
         direction = 0
         keys_pressed = pygame.key.get_pressed()
 
-        if keys_pressed[PADDLE_1_UP_KEY]:
+        if keys_pressed[self.controls.up_key]:
            direction -= 1
 
-        elif keys_pressed[PADDLE_1_DOWN_KEY]:
+        elif keys_pressed[self.controls.down_key]:
            direction += 1
         
         dy=direction*self.speed
@@ -85,30 +89,13 @@ class Paddle(RectangleSprite):
                 if direction == 1:
                     self.rect.bottom = collision_rect.top
 
-            
-       
-
-        
-
-    def collide(self, xvel, yvel, platforms):  
-        for p in platforms:  
-            if pygame.sprite.collide_rect(self, p):  
-                
-                if xvel > 0: self.rect.right = p.left  
-                if xvel < 0: self.rect.left = p.right  
-                if yvel > 0:  
-                    self.rect.bottom = p.top  
-                    self.onGround = True  
-                    self.yvel = 0  
-                if yvel < 0: self.rect.top = p.bottom      
-                
-            
-
-      
-
-        
-
-
+#
+# Ball
+#
+class Ball(RectangleSprite):
+    def __init__(self,color,width):
+        RectangleSprite.__init__(self,color,width,width)
+        self.speed = 0
 #
 # Wall
 #
@@ -176,10 +163,18 @@ class GameState(State):
     def __init__(self):
         State.__init__(self)
 
-        self._paddle_1 = Paddle((255,0,0),PADDLE_W,PADDLE_H)
+        controls1 = PaddleControlBehavior()
+        controls1.up_key = PADDLE_1_UP_KEY
+        controls1.down_key = PADDLE_1_DOWN_KEY
+        
+        controls2 = PaddleControlBehavior()
+        controls2.up_key = PADDLE_2_UP_KEY
+        controls2.down_key = PADDLE_2_DOWN_KEY
+    
+        self._paddle_1 = Paddle(FOREGROUND,PADDLE_W,PADDLE_H,controls1)
         self._paddle_1.move(PADDLE_MARGIN_H,.5*(SCREEN_H- self._paddle_1.rect.h))
 
-        self._paddle_2 = Paddle(FOREGROUND,PADDLE_W,PADDLE_H)
+        self._paddle_2 = Paddle(FOREGROUND,PADDLE_W,PADDLE_H,controls2)
         self._paddle_2.move(SCREEN_W - PADDLE_MARGIN_H - self._paddle_2.rect.w,self._paddle_1.rect.y)
 
         self.add(self._paddle_1)
@@ -200,6 +195,11 @@ class GameState(State):
         self._paddle_2.walls=walls
         
         self.bg_color=(0,0,0)
+
+        ball = Ball(FOREGROUND,12)
+        ball.move(200,300)
+
+        self.add(ball)
 
     #draw background
     def draw_bg(self,surface):
