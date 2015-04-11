@@ -72,6 +72,7 @@ class Paddle(RectangleSprite):
         self.speed = 2
         self.walls = None
         self.controls = controls
+        self.bounce_direction=1
 
     def update(self):
 
@@ -112,7 +113,7 @@ class Paddle(RectangleSprite):
 class Ball(RectangleSprite):
     def __init__(self,color,width):
         RectangleSprite.__init__(self,color,width,width)
-        self.speed = .5
+        self.speed = 1
         self.speedX=0;
         self.speedY=0;
         self.lastX=0
@@ -132,10 +133,12 @@ class Ball(RectangleSprite):
 
 
         if paddles != None:
-            collision_index = self.rect.collidelist(paddles)
+            collision_list = pygame.sprite.spritecollide(self,paddles,False)
+            if len(collision_list)>0:
+                paddle=collision_list[0]
 
-            if collision_index!=-1:
-                self.speedX*=-1
+                if self.speedX*paddle.bounce_direction<0:
+                    self.update_speed_vector(self.rect.x,self.rect.y,paddle.bounce_direction < 0)
                 
         if self.rect.left>SCREEN_W or self.rect.right<=0:
             self.respawn()
@@ -143,23 +146,30 @@ class Ball(RectangleSprite):
         
         self.lastX+=self.speedX
         self.lastY+=self.speedY
-        
         self.rect.x = self.lastX
         self.rect.y = self.lastY
 
         
 
     def respawn(self):
-        self.lastX=.5*(SCREEN_W-self.rect.width)
-        self.lastY=.5*(SCREEN_H-self.rect.height)
+        midX=.5*(SCREEN_W-self.rect.width)
+        midY=.5*(SCREEN_H-self.rect.height)
+
+        self.update_speed_vector(midX,midY,random()>.5)
+
+    def update_speed_vector(self,x,y,go_left):
+        self.lastX=x
+        self.lastY=y
 
         self.move(self.lastX,self.lastY)
+
         angle = random()*pi/2-pi/4
+
         self.speedX=cos(angle)*self.speed
         self.speedY=sin(angle)*self.speed
 
-        if random>5:
-            self.speedX*=-1;
+        if go_left and self.speedX>0:
+            self.speedX*=-1
         
 #
 # Wall
@@ -242,6 +252,7 @@ class GameState(State):
 
         self._paddle_2 = Paddle(FOREGROUND,PADDLE_W,PADDLE_H,controls2)
         self._paddle_2.move(SCREEN_W - PADDLE_MARGIN_H - self._paddle_2.rect.w,self._paddle_1.rect.y)
+        self._paddle_2.bounce_direction=-1
 
         self.add(self._paddle_1)
         self.add(self._paddle_2)
