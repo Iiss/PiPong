@@ -1,12 +1,14 @@
 import pygame,sys
 from pygame.locals import *
+from math import *
+from random import *
 
 #
 # Global Settings
 #
 SCREEN_W = 640
 SCREEN_H = 480
-FPS = 60
+FPS = 360
 FOREGROUND = (255,255,255)
 
 MARGIN_V = 4
@@ -54,7 +56,7 @@ class Paddle(RectangleSprite):
 
     def __init__(self,color,width,height,controls):
         RectangleSprite.__init__(self,color,width,height)
-        self.speed = 5
+        self.speed = 2
         self.walls = None
         self.controls = controls
 
@@ -65,12 +67,12 @@ class Paddle(RectangleSprite):
         keys_pressed = pygame.key.get_pressed()
 
         if keys_pressed[self.controls.up_key]:
-           direction -= 1
+            direction -= 1
 
-        elif keys_pressed[self.controls.down_key]:
+        if keys_pressed[self.controls.down_key]:
            direction += 1
         
-        dy=direction*self.speed
+        dy=self.speed*direction
 
         self.rect.top += dy
         
@@ -95,7 +97,35 @@ class Paddle(RectangleSprite):
 class Ball(RectangleSprite):
     def __init__(self,color,width):
         RectangleSprite.__init__(self,color,width,width)
-        self.speed = 0
+        self.speed = .5
+        self.speedX=0;
+        self.speedY=0;
+        self.lastX=0
+        self.lastY=0;
+        self.respawn()
+        
+    def update(self):
+        if self.rect.left>SCREEN_W or self.rect.right<=0 or self.rect.top>SCREEN_H or self.rect.bottom<0:
+            self.respawn()
+        
+        
+        self.lastX+=self.speedX
+        self.lastY+=self.speedY
+        
+        self.rect.x = self.lastX
+        self.rect.y = self.lastY
+
+        
+
+    def respawn(self):
+        self.lastX=.5*(SCREEN_W-self.rect.width)
+        self.lastY=.5*(SCREEN_H-self.rect.height)
+
+        self.move(self.lastX,self.lastY)
+        angle = random()*pi
+        self.speedX=cos(angle)*self.speed
+        self.speedY=sin(angle)*self.speed
+        
 #
 # Wall
 #
@@ -122,8 +152,9 @@ class State:
 
     def on_render(self,surface):
         if self._display_list != None:
-            self._display_list.draw(surface)
             self._display_list.update()
+            self._display_list.draw(surface)
+            
 
     def on_cleanup(self):
         pass
@@ -197,9 +228,11 @@ class GameState(State):
         self.bg_color=(0,0,0)
 
         ball = Ball(FOREGROUND,12)
-        ball.move(200,300)
 
         self.add(ball)
+
+        self.bg=pygame.Surface([SCREEN_W,SCREEN_H])
+        self.draw_bg(self.bg)
 
     #draw background
     def draw_bg(self,surface):
@@ -215,7 +248,7 @@ class GameState(State):
 
 
     def on_render(self,surface):
-        self.draw_bg(surface)
+        surface.blit(self.bg,[0,0])
         State.on_render(self,surface)
                   
     
