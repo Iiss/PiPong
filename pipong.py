@@ -154,9 +154,12 @@ class Ball(RectangleSprite):
         self.lastY=.5*(SCREEN_H-self.rect.height)
 
         self.move(self.lastX,self.lastY)
-        angle = random()*pi
+        angle = random()*pi/2-pi/4
         self.speedX=cos(angle)*self.speed
         self.speedY=sin(angle)*self.speed
+
+        if random>5:
+            self.speedX*=-1;
         
 #
 # Wall
