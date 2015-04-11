@@ -6,7 +6,7 @@ from random import *
 #
 # Global Settings
 #
-SCREEN_W = 600
+SCREEN_W = 800
 SCREEN_H = 480
 FPS = 360
 FOREGROUND = (255,255,255)
@@ -25,6 +25,9 @@ PADDLE_1_DOWN_KEY = pygame.K_a
 
 PADDLE_2_UP_KEY = pygame.K_p
 PADDLE_2_DOWN_KEY = pygame.K_l
+
+pygame.font.init()
+font = pygame.font.Font("assets/visitor1.ttf",96)
 
 #
 # Collision detection
@@ -69,7 +72,7 @@ class Paddle(RectangleSprite):
 
     def __init__(self,color,width,height,controls):
         RectangleSprite.__init__(self,color,width,height)
-        self.speed = 2
+        self.speed = 1
         self.walls = None
         self.controls = controls
         self.bounce_direction=1
@@ -139,10 +142,6 @@ class Ball(RectangleSprite):
 
                 if self.speedX*paddle.bounce_direction<0:
                     self.update_speed_vector(self.rect.x,self.rect.y,paddle.bounce_direction < 0)
-                
-        if self.rect.left>SCREEN_W or self.rect.right<=0:
-            self.respawn()
-        
         
         self.lastX+=self.speedX
         self.lastY+=self.speedY
@@ -178,6 +177,12 @@ class Wall(RectangleSprite):
 
     def __init__(self,color,width,height):
         RectangleSprite.__init__(self,color,width,height)
+#
+# Counter
+#
+class Counter(pygame.Surface):
+    def __init__(self):
+        super(Counter,self).__init__()
 
 #
 # State
@@ -265,17 +270,12 @@ class GameState(State):
 
         self.add(self._top_wall)
         self.add(self._bottom_wall)
-
-        walls=[self._top_wall.rect,self._bottom_wall.rect]
-
-        self._paddle_1.walls=walls
-        self._paddle_2.walls=walls
         
         self.bg_color=(0,0,0)
 
-        ball = Ball(TEST,12)
+        self._ball = Ball(FOREGROUND,12)
 
-        self.add(ball)
+        self.add(self._ball)
 
         self.bg=pygame.Surface([SCREEN_W,SCREEN_H])
         self.draw_bg(self.bg)
@@ -283,6 +283,14 @@ class GameState(State):
         COLLISIONS['walls']=[self._top_wall.rect,self._bottom_wall.rect]
         COLLISIONS['paddles']=[self._paddle_1,self._paddle_2]
 
+        self._score1=0
+        self._score2=0
+        self._counter1 = self.render_counter(self._score1)
+        self._counter2 = self.render_counter(self._score2)
+
+    def render_counter(self,count):
+        return font.render(str(count),False,FOREGROUND)
+    
     #draw background
     def draw_bg(self,surface):
         surface.fill(self.bg_color)
@@ -298,9 +306,19 @@ class GameState(State):
 
     def on_render(self,surface):
         surface.blit(self.bg,[0,0])
+        surface.blit(self._counter1,[.5*SCREEN_W-40-self._counter1.get_width(),16])
+        surface.blit(self._counter2,[.5*SCREEN_W+50,16])
         State.on_render(self,surface)
-                  
-    
+
+        if self._ball.rect.right<0:
+            self._score2+=1;
+            self._counter2=self.render_counter(self._score2)
+            self._ball.respawn()
+            
+        if self._ball.rect.left>SCREEN_W:
+            self._score1+=1;
+            self._counter1=self.render_counter(self._score1)
+            self._ball.respawn()
 #
 # Main Apllication Class
 #
