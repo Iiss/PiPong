@@ -6,12 +6,13 @@ from random import *
 #
 # Global Settings
 #
-SCREEN_W = 640
+SCREEN_W = 600
 SCREEN_H = 480
 FPS = 360
 FOREGROUND = (255,255,255)
+TEST = (255,0,0)
 
-MARGIN_V = 4
+MARGIN_V = 0
 LINE_W = 8
 
 PADDLE_W = 12
@@ -25,6 +26,18 @@ PADDLE_1_DOWN_KEY = pygame.K_a
 PADDLE_2_UP_KEY = pygame.K_p
 PADDLE_2_DOWN_KEY = pygame.K_l
 
+#
+# Collision detection
+#
+COLLISIONS={}
+def collide(sprite,group_name):
+    group = COLLISIONS[group_name]
+
+    if group != None:
+        collision_index = sprite.rect.collidelist(group)
+        return collision_index!=-1
+            
+    return false
 #
 # Rectangle Sprite
 #
@@ -78,12 +91,14 @@ class Paddle(RectangleSprite):
         
 
         move=self.rect.move(0,dy)
+
+        walls=COLLISIONS['walls']
         
-        if self.walls != None:
-            collision_index = move.collidelist(self.walls)
+        if walls != None:
+            collision_index = move.collidelist(walls)
 
             if collision_index!=-1:
-                collision_rect=self.walls[collision_index]
+                collision_rect=walls[collision_index]
 
                 if direction == -1:
                     self.rect.top = collision_rect.bottom
@@ -105,7 +120,24 @@ class Ball(RectangleSprite):
         self.respawn()
         
     def update(self):
-        if self.rect.left>SCREEN_W or self.rect.right<=0 or self.rect.top>SCREEN_H or self.rect.bottom<0:
+
+        walls=COLLISIONS['walls']
+        paddles=COLLISIONS['paddles']
+        
+        if walls != None:
+            collision_index = self.rect.collidelist(walls)
+
+            if collision_index!=-1:
+                self.speedY*=-1
+
+
+        if paddles != None:
+            collision_index = self.rect.collidelist(paddles)
+
+            if collision_index!=-1:
+                self.speedX*=-1
+                
+        if self.rect.left>SCREEN_W or self.rect.right<=0:
             self.respawn()
         
         
@@ -227,12 +259,15 @@ class GameState(State):
         
         self.bg_color=(0,0,0)
 
-        ball = Ball(FOREGROUND,12)
+        ball = Ball(TEST,12)
 
         self.add(ball)
 
         self.bg=pygame.Surface([SCREEN_W,SCREEN_H])
         self.draw_bg(self.bg)
+
+        COLLISIONS['walls']=[self._top_wall.rect,self._bottom_wall.rect]
+        COLLISIONS['paddles']=[self._paddle_1,self._paddle_2]
 
     #draw background
     def draw_bg(self,surface):
@@ -257,10 +292,10 @@ class GameState(State):
 #
 class App:
 
-    def __init__(self):
+    def __init__(self,width,height):
         self._runnting = True
         self._display_surf = None
-        self.size = SCREEN_W,SCREEN_H
+        self.size = width,height
 
         self._curStateIndex=0
 
@@ -311,7 +346,7 @@ class App:
 
 if __name__ == "__main__":
 
-    theApp = App()
+    theApp = App(SCREEN_W,SCREEN_H)
     StateManager.currentState = GameState()
     theApp.on_execute()
         
