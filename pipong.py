@@ -29,6 +29,7 @@ PADDLE_2_DOWN_KEY = pygame.K_l
 pygame.font.init()
 font = pygame.font.Font("assets/visitor1.ttf",96)
 
+
 #
 # Collision detection
 #
@@ -133,6 +134,7 @@ class Ball(RectangleSprite):
 
             if collision_index!=-1:
                 self.speedY*=-1
+                wall_sfx.play()
 
 
         if paddles != None:
@@ -142,6 +144,7 @@ class Ball(RectangleSprite):
 
                 if self.speedX*paddle.bounce_direction<0:
                     self.update_speed_vector(self.rect.x,self.rect.y,paddle.bounce_direction < 0)
+                    paddle_sfx.play()
         
         self.lastX+=self.speedX
         self.lastY+=self.speedY
@@ -340,6 +343,14 @@ class App:
         self._running = True
         self._clock = pygame.time.Clock()
 
+        try:
+            global wall_sfx
+            wall_sfx = pygame.mixer.Sound('assets/wall_blip.wav')  #load sound
+            global paddle_sfx
+            paddle_sfx = pygame.mixer.Sound('assets/paddle_blip.wav')  #load sound
+        except:
+            raise UserWarning, "could not load or play soundfiles in 'data' folder :-("
+
     def on_event(self,event):
         if event.type == QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             self._running = False
@@ -378,7 +389,10 @@ class App:
 
 if __name__ == "__main__":
 
+    pygame.mixer.pre_init(44100, -16, 2, 2048)
+
     theApp = App(SCREEN_W,SCREEN_H)
+
     StateManager.currentState = GameState()
     theApp.on_execute()
         
