@@ -10,6 +10,7 @@ SCREEN_W = 800
 SCREEN_H = 480
 FPS = 360
 FOREGROUND = (255,255,255)
+BACKGROUND = (0,0,0)
 TEST = (255,0,0)
 
 MARGIN_V = 0
@@ -239,13 +240,49 @@ class StateManager(object):
                     cls._currentState.on_cleanup()
                     
                 cls._currentState = value
+#
+# Base state
+#
+class AbstractState(State):
+    def __init__(self):
+        State.__init__(self)
+        self.bg=pygame.Surface([SCREEN_W,SCREEN_H])
 
+        bg_color=(0,0,0)
+        self.bg.fill(bg_color)
+        
+        lasty = starty = MARGIN_V+LINE_W
+        endy = SCREEN_H-MARGIN_V-LINE_W
+        gap = 8
+        
+        while lasty < endy:
+            pygame.draw.rect(self.bg,FOREGROUND,(.5*(SCREEN_W-LINE_W),lasty,LINE_W,LINE_W))
+            lasty+=(LINE_W+gap)
+
+    def on_render(self,surface):
+        surface.blit(self.bg,[0,0])
+        State.on_render(self,surface)
+#
+# Title State
+#
+class TitleState(AbstractState):
+    def __init__(self):
+        AbstractState.__init__(self)
+        
+    def on_event(self,event):
+        AbstractState.on_event(self,event)
+        keys_pressed = pygame.key.get_pressed()
+
+
+        if keys_pressed[PADDLE_1_UP_KEY] and keys_pressed[PADDLE_1_DOWN_KEY] or keys_pressed[PADDLE_2_UP_KEY] and keys_pressed[PADDLE_2_DOWN_KEY]:
+            StateManager.currentState=GameState()
+            
 #
 # Game State
 #
-class GameState(State):
+class GameState(AbstractState):
     def __init__(self):
-        State.__init__(self)
+        AbstractState.__init__(self)
 
         controls1 = PaddleControlBehavior()
         controls1.up_key = PADDLE_1_UP_KEY
@@ -273,15 +310,12 @@ class GameState(State):
 
         self.add(self._top_wall)
         self.add(self._bottom_wall)
-        
-        self.bg_color=(0,0,0)
-
+       
         self._ball = Ball(FOREGROUND,12)
 
         self.add(self._ball)
 
-        self.bg=pygame.Surface([SCREEN_W,SCREEN_H])
-        self.draw_bg(self.bg)
+        
 
         COLLISIONS['walls']=[self._top_wall.rect,self._bottom_wall.rect]
         COLLISIONS['paddles']=[self._paddle_1,self._paddle_2]
@@ -293,25 +327,13 @@ class GameState(State):
 
     def render_counter(self,count):
         return font.render(str(count),False,FOREGROUND)
-    
-    #draw background
-    def draw_bg(self,surface):
-        surface.fill(self.bg_color)
-        
-        lasty = starty = MARGIN_V+LINE_W
-        endy = SCREEN_H-MARGIN_V-LINE_W
-        gap = 8
-
-        while lasty < endy:
-            pygame.draw.rect(surface,FOREGROUND,(.5*(SCREEN_W-LINE_W),lasty,LINE_W,LINE_W))
-            lasty+=(LINE_W+gap)
 
 
     def on_render(self,surface):
-        surface.blit(self.bg,[0,0])
+        AbstractState.on_render(self,surface)
+
         surface.blit(self._counter1,[.5*SCREEN_W-40-self._counter1.get_width(),16])
         surface.blit(self._counter2,[.5*SCREEN_W+50,16])
-        State.on_render(self,surface)
 
         if self._ball.rect.right<0:
             self._score2+=1;
@@ -393,7 +415,7 @@ if __name__ == "__main__":
 
     theApp = App(SCREEN_W,SCREEN_H)
 
-    StateManager.currentState = GameState()
+    StateManager.currentState = TitleState()
     theApp.on_execute()
         
     
