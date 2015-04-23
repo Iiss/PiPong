@@ -7,7 +7,7 @@ from random import *
 # Global Settings
 #
 SCREEN_W = 800
-SCREEN_H = 480
+SCREEN_H = 600
 FPS = 360
 FOREGROUND = (255,255,255)
 BACKGROUND = (0,0,0)
@@ -126,7 +126,6 @@ class Ball(RectangleSprite):
         self.respawn()
         
     def update(self):
-
         walls=COLLISIONS['walls']
         paddles=COLLISIONS['paddles']
         
@@ -151,9 +150,7 @@ class Ball(RectangleSprite):
         self.lastY+=self.speedY
         self.rect.x = self.lastX
         self.rect.y = self.lastY
-
         
-
     def respawn(self):
         midX=.5*(SCREEN_W-self.rect.width)
         midY=.5*(SCREEN_H-self.rect.height)
@@ -184,9 +181,15 @@ class Wall(RectangleSprite):
 #
 # Counter
 #
-class Counter(pygame.Surface):
+class Counter(pygame.sprite.Sprite):
     def __init__(self):
         super(Counter,self).__init__()
+        self.set_value_to(99)
+        
+    def set_value_to(self,value):
+        self.image = font.render(str(value),False,FOREGROUND)
+        self.rect=self.image.get_rect()
+
 
 #
 # State
@@ -259,8 +262,23 @@ class AbstractState(State):
             pygame.draw.rect(self.bg,FOREGROUND,(.5*(SCREEN_W-LINE_W),lasty,LINE_W,LINE_W))
             lasty+=(LINE_W+gap)
 
+        
+        self._top_wall = Wall(FOREGROUND,SCREEN_W,LINE_W)
+        self._bottom_wall = Wall(FOREGROUND,SCREEN_W,LINE_W)
+
+        self._top_wall.move(0,MARGIN_V)
+        self._bottom_wall.move(0,SCREEN_H-MARGIN_V-LINE_W)
+
+        self.need_bg=True
+
     def on_render(self,surface):
-        surface.blit(self.bg,[0,0])
+        if self.need_bg:
+            self.need_bg=False
+            self.bg.blit(self._top_wall.image,[self._top_wall.rect.x,self._top_wall.rect.y])
+            self.bg.blit(self._bottom_wall.image,[self._bottom_wall.rect.x,self._bottom_wall.rect.y])
+            surface.blit(self.bg,[0,0])
+            pygame.display.update()
+    
         State.on_render(self,surface)
 #
 # Title State
@@ -302,48 +320,83 @@ class GameState(AbstractState):
         self.add(self._paddle_1)
         self.add(self._paddle_2)
 
-        self._top_wall = Wall(FOREGROUND,SCREEN_W,LINE_W)
-        self._bottom_wall = Wall(FOREGROUND,SCREEN_W,LINE_W)
-
-        self._top_wall.move(0,MARGIN_V)
-        self._bottom_wall.move(0,SCREEN_H-MARGIN_V-LINE_W)
-
-        self.add(self._top_wall)
-        self.add(self._bottom_wall)
-       
         self._ball = Ball(FOREGROUND,12)
 
         self.add(self._ball)
-
-        
 
         COLLISIONS['walls']=[self._top_wall.rect,self._bottom_wall.rect]
         COLLISIONS['paddles']=[self._paddle_1,self._paddle_2]
 
         self._score1=0
         self._score2=0
-        self._counter1 = self.render_counter(self._score1)
-        self._counter2 = self.render_counter(self._score2)
 
+        self._counter1=Counter()
+        self._counter1.rect.x = .5*SCREEN_W-40-self._counter1.rect.w
+        self._counter1.rect.y = 16
+        self.add(self._counter1);
+    
+        self._counter2=Counter()
+        self._counter2.rect.x = .5*SCREEN_W+50
+        self._counter2.rect.y = 16
+        self.add(self._counter2);
+        
+        ### counters rendering fix part ###
+        self._counter1_updaterect= pygame.Rect(.5*SCREEN_W-156,self._counter1.rect.y,116,88)
+        self._counter2_updaterect= pygame.Rect(.5*SCREEN_W+50,self._counter2.rect.y,116,88)
+        ### end fix part ###
+        
     def render_counter(self,count):
         return font.render(str(count),False,FOREGROUND)
 
 
     def on_render(self,surface):
-        AbstractState.on_render(self,surface)
 
-        surface.blit(self._counter1,[.5*SCREEN_W-40-self._counter1.get_width(),16])
-        surface.blit(self._counter2,[.5*SCREEN_W+50,16])
+        update_areas=[]
+
+        for sp in self._display_list.sprites():
+            if sp.rect:
+                update_areas.append(pygame.Rect(sp.rect.x,sp.rect.y,sp.rect.w,sp.rect.h))
+                surface.blit(self.bg,[sp.rect.x,sp.rect.y],sp.rect)
+
+        surface.blit(self.bg,[self._counter1_updaterect.x,self._counter1_updaterect.y],self._counter1_updaterect)
+        surface.blit(self.bg,[self._counter2_updaterect.x,self._counter2_updaterect.y],self._counter2_updaterect)
+
+        AbstractState.on_render(self,surface)
 
         if self._ball.rect.right<0:
             self._score2+=1;
-            self._counter2=self.render_counter(self._score2)
+
+            if self._score2>99:
+                self._score2=0
+        
+            self._counter2.set_value_to(self._score2)
+            self._counter2.rect.x = .5*SCREEN_W+50
+            self._counter2.rect.y = 16
             self._ball.respawn()
             
         if self._ball.rect.left>SCREEN_W:
             self._score1+=1;
-            self._counter1=self.render_counter(self._score1)
+            
+            if self._score1>99:
+                self._score1=0
+
+            self._counter1.set_value_to(self._score1)
+            self._counter1.rect.x = .5*SCREEN_W-40-self._counter1.rect.w
+            self._counter1.rect.y = 16
             self._ball.respawn()
+
+        for sp in self._display_list.sprites():
+            if sp.rect:
+                update_areas.append(sp.rect)
+                
+        ### counters rendering fix part ###
+        update_areas.append(self._counter1_updaterect)
+        update_areas.append(self._counter2_updaterect)
+        ### end fix part ###
+        
+        pygame.display.update(update_areas)
+
+        
 #
 # Main Apllication Class
 #
@@ -404,7 +457,6 @@ class App:
             self.on_loop()
             self.on_render()
 
-            pygame.display.flip()
             self._clock.tick(FPS)
 
         self.on_cleanup()
