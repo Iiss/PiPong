@@ -80,7 +80,6 @@ class Paddle(RectangleSprite):
         self.bounce_direction=1
 
     def update(self):
-
        
         direction = 0
         keys_pressed = pygame.key.get_pressed()
@@ -184,7 +183,7 @@ class Wall(RectangleSprite):
 class Counter(pygame.sprite.Sprite):
     def __init__(self):
         super(Counter,self).__init__()
-        self.set_value_to(99)
+        self.set_value_to(0)
         
     def set_value_to(self,value):
         self.image = font.render(str(value),False,FOREGROUND)
