@@ -414,7 +414,8 @@ class App:
         
         self._display_surf = pygame.display.set_mode(self.size)
         pygame.display.set_caption("PiPong")
-
+        pygame.mouse.set_visible(False)
+        
         self._running = True
         self._clock = pygame.time.Clock()
 
@@ -464,7 +465,7 @@ class App:
 if __name__ == "__main__":
 
     pygame.mixer.pre_init(44100, -16, 2, 2048)
-
+    
     theApp = App(SCREEN_W,SCREEN_H)
 
     StateManager.currentState = TitleState()
