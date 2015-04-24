@@ -2,12 +2,13 @@ import pygame,sys
 from pygame.locals import *
 from math import *
 from random import *
-
+import logging
+from time import sleep
 #
 # Global Settings
 #
 SCREEN_W = 800
-SCREEN_H = 600
+SCREEN_H = 480
 FPS = 360
 FOREGROUND = (255,255,255)
 BACKGROUND = (0,0,0)
@@ -27,10 +28,49 @@ PADDLE_1_DOWN_KEY = pygame.K_a
 PADDLE_2_UP_KEY = pygame.K_p
 PADDLE_2_DOWN_KEY = pygame.K_l
 
+REPLAY_KEY = pygame.K_r
+
 pygame.font.init()
 font = pygame.font.Font("assets/visitor1.ttf",96)
+title_font = pygame.font.Font("assets/visitor1.ttf",64)
 
 
+#
+# GPIO integration
+#
+
+GPIO_READY=False
+
+gpio_P1_up=2
+gpio_P1_down=4
+gpio_P2_up=17
+gpio_P2_down=27
+gpio_Replay=22
+
+try:
+    import RPi.GPIO as gpio
+    GPIO_READY=True
+    
+except ImportError:
+    logging.warning("GPIO is not available")
+
+if GPIO_READY:
+    gpio.setmode(gpio.BCM)
+    gpio.setup(gpio_P1_up, gpio.IN, pull_up_down=gpio.PUD_UP)
+    gpio.setup(gpio_P1_down, gpio.IN, pull_up_down=gpio.PUD_UP)
+    gpio.setup(gpio_P2_up, gpio.IN, pull_up_down=gpio.PUD_UP)
+    gpio.setup(gpio_P2_down, gpio.IN, pull_up_down=gpio.PUD_UP)
+    gpio.setup(gpio_Replay, gpio.IN, pull_up_down=gpio.PUD_UP)   
+
+#
+# Buttons check
+#
+
+def checkButton(keys_pressed,key,gpio_pin):
+    if keys_pressed[key]:
+        return True
+    if GPIO_READY:
+        return gpio_pin and gpio.input(gpio_pin)==False
 #
 # Collision detection
 #
@@ -78,16 +118,18 @@ class Paddle(RectangleSprite):
         self.walls = None
         self.controls = controls
         self.bounce_direction=1
-
+        self.gpio_up=None
+        self.gpio_down=None
+        
     def update(self):
        
         direction = 0
         keys_pressed = pygame.key.get_pressed()
 
-        if keys_pressed[self.controls.up_key]:
+        if checkButton(keys_pressed,self.controls.up_key,self.gpio_up):
             direction -= 1
 
-        if keys_pressed[self.controls.down_key]:
+        if checkButton(keys_pressed,self.controls.down_key,self.gpio_down):
            direction += 1
         
         dy=self.speed*direction
@@ -249,6 +291,7 @@ class AbstractState(State):
     def __init__(self):
         State.__init__(self)
         self.bg=pygame.Surface([SCREEN_W,SCREEN_H])
+        self._surface=None
 
         bg_color=(0,0,0)
         self.bg.fill(bg_color)
@@ -271,6 +314,8 @@ class AbstractState(State):
         self.need_bg=True
 
     def on_render(self,surface):
+        self._surface=surface
+
         if self.need_bg:
             self.need_bg=False
             self.bg.blit(self._top_wall.image,[self._top_wall.rect.x,self._top_wall.rect.y])
@@ -279,20 +324,35 @@ class AbstractState(State):
             pygame.display.update()
     
         State.on_render(self,surface)
+    
+    def on_cleanup(self):
+        self._surface.blit(self.bg,[0,0])
+        pygame.display.update()
+        
+    
 #
 # Title State
 #
 class TitleState(AbstractState):
     def __init__(self):
         AbstractState.__init__(self)
-        
-    def on_event(self,event):
-        AbstractState.on_event(self,event)
-        keys_pressed = pygame.key.get_pressed()
+        title = title_font.render('GET READY',False,FOREGROUND)
 
+        self.p1_title=pygame.transform.rotate(title,270)
+        self.p2_title=pygame.transform.rotate(title,90)
 
-        if keys_pressed[PADDLE_1_UP_KEY] and keys_pressed[PADDLE_1_DOWN_KEY] or keys_pressed[PADDLE_2_UP_KEY] and keys_pressed[PADDLE_2_DOWN_KEY]:
-            StateManager.currentState=GameState()
+    def on_loop(self):
+        AbstractState.on_loop(self)
+    
+    def on_render(self,surface):
+        AbstractState.on_render(self,surface)
+        h_mid=.5*(SCREEN_H-self.p1_title.get_height());
+        surface.blit(self.p1_title,[.25*SCREEN_W-.5*self.p1_title.get_width(),h_mid])
+        surface.blit(self.p2_title,[.75*SCREEN_W-.5*self.p2_title.get_width(),h_mid])
+        pygame.display.update()
+        sleep(3)
+        GAME_STATE.reset()
+        StateManager.currentState=GAME_STATE
             
 #
 # Game State
@@ -311,10 +371,14 @@ class GameState(AbstractState):
     
         self._paddle_1 = Paddle(FOREGROUND,PADDLE_W,PADDLE_H,controls1)
         self._paddle_1.move(PADDLE_MARGIN_H,.5*(SCREEN_H- self._paddle_1.rect.h))
-
+        self._paddle_1.gpio_up = gpio_P1_up
+        self._paddle_1.gpio_down = gpio_P1_down
+        
         self._paddle_2 = Paddle(FOREGROUND,PADDLE_W,PADDLE_H,controls2)
         self._paddle_2.move(SCREEN_W - PADDLE_MARGIN_H - self._paddle_2.rect.w,self._paddle_1.rect.y)
         self._paddle_2.bounce_direction=-1
+        self._paddle_2.gpio_up = gpio_P2_up
+        self._paddle_2.gpio_down = gpio_P2_down
 
         self.add(self._paddle_1)
         self.add(self._paddle_2)
@@ -343,13 +407,28 @@ class GameState(AbstractState):
         self._counter1_updaterect= pygame.Rect(.5*SCREEN_W-156,self._counter1.rect.y,116,88)
         self._counter2_updaterect= pygame.Rect(.5*SCREEN_W+50,self._counter2.rect.y,116,88)
         ### end fix part ###
-        
+    def on_event(self,event):
+        keys_pressed = pygame.key.get_pressed()
+
+        if checkButton(keys_pressed,REPLAY_KEY,gpio_Replay):
+            StateManager.currentState=TITLE_STATE
+            
     def render_counter(self,count):
         return font.render(str(count),False,FOREGROUND)
 
+    def reset(self):
+        self._score1=0
+        self._score2=0
 
+        self._counter1.set_value_to(self._score1)
+        self._counter1.rect.x = .5*SCREEN_W-40-self._counter1.rect.w
+        self._counter1.rect.y = 16
+        
+        self._counter2.set_value_to(self._score2)
+        self._counter2.rect.x = .5*SCREEN_W+50
+        self._counter2.rect.y = 16
+            
     def on_render(self,surface):
-
         update_areas=[]
 
         for sp in self._display_list.sprites():
@@ -366,7 +445,7 @@ class GameState(AbstractState):
             self._score2+=1;
 
             if self._score2>99:
-                self._score2=0
+                StateManager.currentState=TITLE_STATE
         
             self._counter2.set_value_to(self._score2)
             self._counter2.rect.x = .5*SCREEN_W+50
@@ -377,7 +456,7 @@ class GameState(AbstractState):
             self._score1+=1;
             
             if self._score1>99:
-                self._score1=0
+                StateManager.currentState=TITLE_STATE
 
             self._counter1.set_value_to(self._score1)
             self._counter1.rect.x = .5*SCREEN_W-40-self._counter1.rect.w
@@ -394,7 +473,6 @@ class GameState(AbstractState):
         ### end fix part ###
         
         pygame.display.update(update_areas)
-
         
 #
 # Main Apllication Class
@@ -460,6 +538,9 @@ class App:
             self._clock.tick(FPS)
 
         self.on_cleanup()
+##### need cleanup
+        if GPIO_READY:
+            GPIO.cleanup()
 
 if __name__ == "__main__":
 
@@ -467,7 +548,9 @@ if __name__ == "__main__":
     
     theApp = App(SCREEN_W,SCREEN_H)
 
-    StateManager.currentState = TitleState()
+    TITLE_STATE = TitleState()
+    GAME_STATE = GameState()
+    StateManager.currentState = TITLE_STATE
     theApp.on_execute()
         
     
