@@ -345,14 +345,47 @@ class TitleState(AbstractState):
         AbstractState.on_loop(self)
     
     def on_render(self,surface):
+        self.need_bg=True
         AbstractState.on_render(self,surface)
+        
         h_mid=.5*(SCREEN_H-self.p1_title.get_height());
+
         surface.blit(self.p1_title,[.25*SCREEN_W-.5*self.p1_title.get_width(),h_mid])
         surface.blit(self.p2_title,[.75*SCREEN_W-.5*self.p2_title.get_width(),h_mid])
         pygame.display.update()
         sleep(3)
         GAME_STATE.reset()
         StateManager.currentState=GAME_STATE
+
+#
+# Girls State
+#
+class GirlsState(State):
+    def __init__(self):
+        State.__init__(self)
+        self.title = title_font.render('YOUR PONG IS SO LONG',False,FOREGROUND)
+        self.girls=None
+        
+    def on_loop(self):
+        State.on_loop(self)
+    
+    def on_render(self,surface):
+        State.on_render(self,surface)
+
+        surface.fill(BACKGROUND)
+
+        if not self.girls:
+            self.girls = pygame.transform.scale2x(girls_img)    
+        
+        surface.blit(self.girls,[SCREEN_W-self.girls.get_width(),SCREEN_H-self.girls.get_height()])
+
+        surface.blit(self.title,[20,40])
+        
+        pygame.display.update()
+        sleep(5)
+        GAME_STATE.reset()
+        StateManager.currentState=TITLE_STATE
+
             
 #
 # Game State
@@ -407,6 +440,7 @@ class GameState(AbstractState):
         self._counter1_updaterect= pygame.Rect(.5*SCREEN_W-156,self._counter1.rect.y,116,88)
         self._counter2_updaterect= pygame.Rect(.5*SCREEN_W+50,self._counter2.rect.y,116,88)
         ### end fix part ###
+        
     def on_event(self,event):
         keys_pressed = pygame.key.get_pressed()
 
@@ -445,7 +479,8 @@ class GameState(AbstractState):
             self._score2+=1;
 
             if self._score2>99:
-                StateManager.currentState=TITLE_STATE
+                sleep(1)
+                StateManager.currentState=GIRLS_STATE
         
             self._counter2.set_value_to(self._score2)
             self._counter2.rect.x = .5*SCREEN_W+50
@@ -456,7 +491,8 @@ class GameState(AbstractState):
             self._score1+=1;
             
             if self._score1>99:
-                StateManager.currentState=TITLE_STATE
+                sleep(1)
+                StateManager.currentState=GIRLS_STATE
 
             self._counter1.set_value_to(self._score1)
             self._counter1.rect.x = .5*SCREEN_W-40-self._counter1.rect.w
@@ -504,6 +540,9 @@ class App:
         except:
             raise UserWarning, "could not load or play soundfiles in 'data' folder :-("
 
+        global girls_img
+        girls_img = pygame.image.load("assets/cga_girls4.gif").convert()
+
     def on_event(self,event):
         if event.type == QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             self._running = False
@@ -538,7 +577,7 @@ class App:
             self._clock.tick(FPS)
 
         self.on_cleanup()
-##### need cleanup
+        
         if GPIO_READY:
             GPIO.cleanup()
 
@@ -550,7 +589,8 @@ if __name__ == "__main__":
 
     TITLE_STATE = TitleState()
     GAME_STATE = GameState()
-    StateManager.currentState = TITLE_STATE
+    GIRLS_STATE = GirlsState()
+    StateManager.currentState = GIRLS_STATE
     theApp.on_execute()
         
     
