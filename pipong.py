@@ -461,6 +461,11 @@ class GameState(AbstractState):
         self._counter2.set_value_to(self._score2)
         self._counter2.rect.x = .5*SCREEN_W+50
         self._counter2.rect.y = 16
+
+        self._ball.respawn()
+
+        self._paddle_1.move(PADDLE_MARGIN_H,.5*(SCREEN_H- self._paddle_1.rect.h))
+        self._paddle_2.move(SCREEN_W - PADDLE_MARGIN_H - self._paddle_2.rect.w,self._paddle_1.rect.y)
             
     def on_render(self,surface):
         update_areas=[]
