@@ -2,7 +2,7 @@ import pygame,sys
 from pygame.locals import *
 from math import *
 from random import *
-import logging
+#import logging
 from time import sleep
 #
 # Global Settings
@@ -52,7 +52,8 @@ try:
     GPIO_READY=True
     
 except ImportError:
-    logging.warning("GPIO is not available")
+    #logging.warning("GPIO is not available")
+    print("GPIO is not available")
 
 if GPIO_READY:
     gpio.setmode(gpio.BCM)
