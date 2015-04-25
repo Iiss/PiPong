@@ -8,8 +8,8 @@ from time import sleep
 # Global Settings
 #
 SCREEN_W = 800
-SCREEN_H = 480
-FPS = 360
+SCREEN_H = 600
+FPS = 180
 FOREGROUND = (255,255,255)
 BACKGROUND = (0,0,0)
 TEST = (255,0,0)
