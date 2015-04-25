@@ -41,11 +41,11 @@ title_font = pygame.font.Font("assets/visitor1.ttf",64)
 
 GPIO_READY=False
 
-gpio_P1_up=2
-gpio_P1_down=4
-gpio_P2_up=17
-gpio_P2_down=27
-gpio_Replay=22
+gpio_P1_up=27
+gpio_P1_down=22
+gpio_P2_up=2
+gpio_P2_down=4
+gpio_Replay=17
 
 try:
     import RPi.GPIO as gpio
@@ -445,6 +445,7 @@ class GameState(AbstractState):
         keys_pressed = pygame.key.get_pressed()
 
         if checkButton(keys_pressed,REPLAY_KEY,gpio_Replay):
+            print gpio_Replay
             StateManager.currentState=TITLE_STATE
             
     def render_counter(self,count):
