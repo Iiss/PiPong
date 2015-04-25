@@ -115,7 +115,7 @@ class Paddle(RectangleSprite):
 
     def __init__(self,color,width,height,controls):
         RectangleSprite.__init__(self,color,width,height)
-        self.speed = 1
+        self.speed = 2
         self.walls = None
         self.controls = controls
         self.bounce_direction=1
@@ -160,7 +160,7 @@ class Paddle(RectangleSprite):
 class Ball(RectangleSprite):
     def __init__(self,color,width):
         RectangleSprite.__init__(self,color,width,width)
-        self.speed = 1
+        self.speed = 2
         self.speedX=0;
         self.speedY=0;
         self.lastX=0
